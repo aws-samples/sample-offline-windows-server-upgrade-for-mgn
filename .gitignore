@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Policies rendered with account-specific values (see README)
+rendered/
+
+# Security scan output and private review material
+security-scan-results/
+ash_output/
+.ash/
+threat-model/
+
+# Local artifacts that you stage in Amazon S3 (third-party files; don't commit)
+mgn-artifacts/
+*.zip
+*.msu
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/

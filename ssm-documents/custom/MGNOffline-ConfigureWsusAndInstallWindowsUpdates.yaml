@@ -1,0 +1,77 @@
+---
+# MGN-OFFLINE (workaround 3, deferred option): patch the EC2 instance that is launched
+# from the upgraded AMI, after the upgrade runbook finished with WindowsUpdateMode=Skip.
+# Optionally points the Windows Update Agent at the customer WSUS server, then runs the
+# AWS-owned AWS-InstallWindowsUpdates document unchanged.
+schemaVersion: '2.2'
+description: "[MGN offline] Optionally configure a WSUS server, then install Windows\
+  \ updates by using AWS-InstallWindowsUpdates. Use on instances launched from the\
+  \ upgraded AMI in environments without internet access."
+parameters:
+  WsusServerUrl:
+    type: String
+    description: "(Optional) WSUS server URL, for example http://wsus.example.internal:8530.\
+      \ Leave empty if WSUS is already configured on the instance (for example, by\
+      \ Group Policy)."
+    default: ''
+    allowedPattern: "^$|^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$"
+  Categories:
+    type: String
+    description: "(Optional) Update categories passed to AWS-InstallWindowsUpdates."
+    default: CriticalUpdates,SecurityUpdates
+    allowedPattern: "^[A-Za-z, ]{0,512}$"
+  SeverityLevels:
+    type: String
+    description: "(Optional) MSRC severity levels passed to AWS-InstallWindowsUpdates."
+    default: Critical,Important
+    allowedPattern: "^[A-Za-z, ]{0,128}$"
+  AllowReboot:
+    type: String
+    description: "(Optional) Allow the instance to reboot if an update requires it."
+    default: 'True'
+    allowedValues:
+    - 'True'
+    - 'False'
+mainSteps:
+- action: aws:runPowerShellScript
+  name: configureWsusClient
+  precondition:
+    StringEquals:
+    - platformType
+    - Windows
+  inputs:
+    timeoutSeconds: '600'
+    runCommand:
+    - |-
+      $wsus = '{{ WsusServerUrl }}'.TrimEnd('/')
+      if (-not $wsus) {
+          Write-Host "WsusServerUrl not provided. Using the existing Windows Update configuration."
+          exit 0
+      }
+      $uri = [System.Uri]$wsus
+      if (-not (Test-NetConnection -ComputerName $uri.Host -Port $uri.Port -InformationLevel Quiet)) {
+          throw "Cannot reach WSUS server $wsus from this instance."
+      }
+      $wu = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+      if (-not (Test-Path $wu)) { New-Item -Path $wu | Out-Null }
+      if (-not (Test-Path "$wu\AU")) { New-Item -Path "$wu\AU" | Out-Null }
+      New-ItemProperty -Path $wu -Name WUServer -Value $wsus -PropertyType String -Force | Out-Null
+      New-ItemProperty -Path $wu -Name WUStatusServer -Value $wsus -PropertyType String -Force | Out-Null
+      New-ItemProperty -Path $wu -Name DoNotConnectToWindowsUpdateInternetLocations -Value 1 -PropertyType DWord -Force | Out-Null
+      New-ItemProperty -Path "$wu\AU" -Name UseWUServer -Value 1 -PropertyType DWord -Force | Out-Null
+      Restart-Service -Name wuauserv -Force
+      Write-Host "Windows Update Agent configured to use WSUS server $wsus"
+- action: aws:runDocument
+  name: installWindowsUpdates
+  precondition:
+    StringEquals:
+    - platformType
+    - Windows
+  inputs:
+    documentType: SSMDocument
+    documentPath: AWS-InstallWindowsUpdates
+    documentParameters:
+      Action: Install
+      AllowReboot: '{{ AllowReboot }}'
+      Categories: '{{ Categories }}'
+      SeverityLevels: '{{ SeverityLevels }}'

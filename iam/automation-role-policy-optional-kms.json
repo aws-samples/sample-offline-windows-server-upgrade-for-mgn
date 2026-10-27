@@ -1,0 +1,30 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "UseCustomerManagedKeyForEncryptedEBS",
+      "Effect": "Allow",
+      "Action": [
+        "kms:CreateGrant",
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:GenerateDataKeyWithoutPlaintext",
+        "kms:ReEncryptFrom",
+        "kms:ReEncryptTo"
+      ],
+      "Resource": "<EBS_KMS_KEY_ARN>",
+      "Condition": {
+        "StringEquals": { "kms:ViaService": "ec2.<REGION>.amazonaws.com" }
+      }
+    },
+    {
+      "Sid": "DecryptArtifactsEncryptedWithSSEKMS",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "<ARTIFACT_BUCKET_KMS_KEY_ARN>",
+      "Condition": {
+        "StringEquals": { "kms:ViaService": "s3.<REGION>.amazonaws.com" }
+      }
+    }
+  ]
+}

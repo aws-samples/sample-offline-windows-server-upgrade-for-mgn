@@ -1,0 +1,54 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "StartEC2RescueFallbackRunbook",
+      "Effect": "Allow",
+      "Action": "ssm:StartAutomationExecution",
+      "Resource": "arn:aws:ssm:<REGION>::automation-definition/AWSSupport-StartEC2RescueWorkflow:*"
+    },
+    {
+      "Sid": "EC2RescueHelperStack",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:DeleteStack",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResource",
+        "cloudformation:DescribeStacks"
+      ],
+      "Resource": "arn:aws:cloudformation:<REGION>:<ACCOUNT_ID>:stack/AWSSupport-EC2Rescue-*/*"
+    },
+    {
+      "Sid": "EC2RescueHelperInstance",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateLaunchTemplate",
+        "ec2:DeleteLaunchTemplate",
+        "ec2:DescribeLaunchTemplates"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "aws:RequestedRegion": "<REGION>" }
+      }
+    },
+    {
+      "Sid": "EC2RescueHelperAmiLookup",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      "Resource": [
+        "arn:aws:ssm:<REGION>::parameter/aws/service/ami-windows-latest/*",
+        "arn:aws:ssm:<REGION>::parameter/aws/service/ami-amazon-linux-latest/*"
+      ]
+    },
+    {
+      "Sid": "EC2RescueRunShellScript",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": "arn:aws:ssm:<REGION>::document/AWS-RunShellScript"
+    }
+  ]
+}
