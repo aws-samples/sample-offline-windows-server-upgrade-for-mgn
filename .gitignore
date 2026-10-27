@@ -10,7 +10,7 @@ rendered/
 # Security scan output and private review material
 security-scan-results/
 ash_output/
-.ash/
+.ash/ash_output/
 threat-model/
 
 # Local artifacts that you stage in Amazon S3 (third-party files; don't commit)

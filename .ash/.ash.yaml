@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/awslabs/automated-security-helper/refs/heads/main/automated_security_helper/schemas/AshConfig.json
+# Automated Security Helper (ASH) configuration for this repository.
+# Run: uvx git+https://github.com/awslabs/automated-security-helper.git@v3.7.0 --mode local
+project_name: sample-offline-windows-server-upgrade-for-mgn
+global_settings:
+  severity_threshold: MEDIUM
+  ignore_paths: []
+  suppressions:
+    # detect-secrets flags Base64 strings as possible secrets. These are the EC2 UserData values from the
+    # AWS-owned runbooks: a Base64-encoded PowerShell script that installs SSM Agent on the temporary
+    # upgrade instance (it begins with "<powershell> $serviceName = "AmazonSSMAgent""). They contain no
+    # credentials. The lines are scoped exactly, so any new finding still fails the scan.
+    - rule_id: SECRET-BASE64-HIGH-ENTROPY-STRING
+      path: ssm-documents/aws-original/AWSEC2-CloneInstanceAndUpgradeWindows.yaml
+      line_start: 272
+      line_end: 272
+      reason: Base64-encoded SSM Agent installation UserData from the AWS-owned runbook; not a secret.
+    - rule_id: SECRET-BASE64-HIGH-ENTROPY-STRING
+      path: ssm-documents/aws-original/AWSEC2-CloneInstanceAndUpgradeWindows2019.yaml
+      line_start: 238
+      line_end: 238
+      reason: Base64-encoded SSM Agent installation UserData from the AWS-owned runbook; not a secret.
+    - rule_id: SECRET-BASE64-HIGH-ENTROPY-STRING
+      path: ssm-documents/custom/MGNOffline-CloneInstanceAndUpgradeWindows.yaml
+      line_start: 328
+      line_end: 328
+      reason: Base64-encoded SSM Agent installation UserData, unchanged from the AWS-owned runbook; not a secret.
+    - rule_id: SECRET-BASE64-HIGH-ENTROPY-STRING
+      path: ssm-documents/custom/MGNOffline-CloneInstanceAndUpgradeWindows2019.yaml
+      line_start: 270
+      line_end: 270
+      reason: Base64-encoded SSM Agent installation UserData, unchanged from the AWS-owned runbook; not a secret.
+    - rule_id: SECRET-BASE64-HIGH-ENTROPY-STRING
+      path: ssm-documents/dist/MGNOffline-CloneInstanceAndUpgradeWindows.json
+      line_start: 1
+      line_end: 1
+      reason: Minified build of the parent runbook (single line); contains the same SSM Agent UserData. Not a secret.
+    # detect-secrets also flags the child runbook name as a high-entropy string.
+    - rule_id: SECRET-BASE64-HIGH-ENTROPY-STRING
+      path: ssm-documents/aws-original/AWSEC2-CloneInstanceAndUpgradeWindows.yaml
+      line_start: 1485
+      line_end: 1485
+      reason: The document name AWSEC2-CloneInstanceAndUpgradeWindows2019; not a secret.
+    - rule_id: SECRET-BASE64-HIGH-ENTROPY-STRING
+      path: ssm-documents/custom/MGNOffline-CloneInstanceAndUpgradeWindows.yaml
+      line_start: 71
+      line_end: 71
+      reason: The document name MGNOffline-CloneInstanceAndUpgradeWindows2019 (ChildDocumentName default); not a secret.
+fail_on_findings: true
